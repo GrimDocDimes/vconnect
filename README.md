@@ -1,4 +1,4 @@
-# vconnect
+# Vconnect
 
 A Vivado MCP server. Lets an LLM agent drive the complete Vivado Design Suite over the [Model Context Protocol](https://modelcontextprotocol.io). Board and part agnostic — works with any Xilinx/AMD device.
 
