@@ -5,7 +5,6 @@
 package router
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
@@ -21,30 +20,22 @@ type Toolset struct {
 }
 
 // Deps is the shared dependency bundle passed to every tool handler.
-type Deps struct {
-	Sessions *SessionRegistry
-	Jobs     interface{ List() interface{} } // jobmgr.Manager — use interface to avoid import cycle
-	Log      interface {
-		Record(interface{})
-		Recent(int, string) interface{}
-		Stats() interface{}
-	}
-}
+// Currently unused (tools capture Env directly via closures), but kept as an
+// extension point for future toolsets.
+type Deps struct{}
 
 // Registry manages toolsets.
 type Registry struct {
 	mu      sync.Mutex
 	server  *mcp.Server
-	deps    *Deps
 	all     map[string]*Toolset
 	enabled map[string]bool
 }
 
 // New creates a Registry.
-func New(server *mcp.Server, deps *Deps) *Registry {
+func New(server *mcp.Server, _ *Deps) *Registry {
 	return &Registry{
 		server:  server,
-		deps:    deps,
 		all:     make(map[string]*Toolset),
 		enabled: make(map[string]bool),
 	}
@@ -69,7 +60,7 @@ func (r *Registry) Enable(name string) error {
 	if r.enabled[name] {
 		return fmt.Errorf("toolset %q is already enabled", name)
 	}
-	ts.Adder(r.server, r.deps)
+	ts.Adder(r.server, nil)
 	r.enabled[name] = true
 	return nil
 }
@@ -95,66 +86,3 @@ type ToolsetInfo struct {
 	Description string `json:"description"`
 	Enabled     bool   `json:"enabled"`
 }
-
-// SessionRegistry manages named Vivado sessions.
-type SessionRegistry struct {
-	mu       sync.Mutex
-	sessions map[string]interface{} // name -> *session.Session (interface to avoid import cycle)
-}
-
-// NewSessionRegistry creates an empty registry.
-func NewSessionRegistry() *SessionRegistry {
-	return &SessionRegistry{sessions: make(map[string]interface{})}
-}
-
-// Register registers a session.
-func (sr *SessionRegistry) Register(name string, s interface{}) {
-	sr.mu.Lock()
-	defer sr.mu.Unlock()
-	sr.sessions[name] = s
-}
-
-// Get retrieves a session by name.
-func (sr *SessionRegistry) Get(name string) (interface{}, bool) {
-	sr.mu.Lock()
-	defer sr.mu.Unlock()
-	s, ok := sr.sessions[name]
-	return s, ok
-}
-
-// Names returns all registered session names.
-func (sr *SessionRegistry) Names() []string {
-	sr.mu.Lock()
-	defer sr.mu.Unlock()
-	names := make([]string, 0, len(sr.sessions))
-	for n := range sr.sessions {
-		names = append(names, n)
-	}
-	return names
-}
-
-// Delete removes a session from the registry.
-func (sr *SessionRegistry) Delete(name string) {
-	sr.mu.Lock()
-	defer sr.mu.Unlock()
-	delete(sr.sessions, name)
-}
-
-// TextResult is a helper that returns a plain-text MCP tool result.
-func TextResult(text string) *mcp.CallToolResult {
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{&mcp.TextContent{Text: text}},
-	}
-}
-
-// ErrorResult returns an MCP tool result with IsError=true.
-func ErrorResult(text string) *mcp.CallToolResult {
-	t := true
-	return &mcp.CallToolResult{
-		IsError: &t,
-		Content: []mcp.Content{&mcp.TextContent{Text: text}},
-	}
-}
-
-// NoOp satisfies the compiler for unused context.
-var _ = context.Background

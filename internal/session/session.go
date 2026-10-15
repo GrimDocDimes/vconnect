@@ -450,3 +450,8 @@ func (s *Session) VivadoVersion(ctx context.Context) (string, error) {
 	}
 	return res.Value, nil
 }
+
+// ParseVivadoMessageExported is a test-exported wrapper around parseVivadoMessage.
+func ParseVivadoMessageExported(line string) (VivadoMessage, bool) {
+	return parseVivadoMessage(line)
+}

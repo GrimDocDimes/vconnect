@@ -1,0 +1,16 @@
+# Binary
+vconnect
+vconnect-linux-amd64
+vconnect.exe
+
+# Build artifacts
+*.log
+runs/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

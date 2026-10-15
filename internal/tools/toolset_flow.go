@@ -11,6 +11,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/jhush/vconnect/internal/jobmgr"
+	"github.com/jhush/vconnect/internal/session"
 )
 
 func RegisterFlowToolset(s *mcp.Server, env *Env) {
