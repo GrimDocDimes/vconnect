@@ -8,7 +8,6 @@ import (
 )
 
 // RegisterAllToolsets populates the registry with all on-demand toolsets.
-// None of them are enabled at startup.
 func RegisterAllToolsets(reg *router.Registry, srv *mcp.Server, env *Env) {
 	reg.Register(&router.Toolset{
 		Name:        "target",
@@ -51,6 +50,14 @@ func RegisterAllToolsets(reg *router.Registry, srv *mcp.Server, env *Env) {
 	})
 
 	reg.Register(&router.Toolset{
+		Name:        "timing_constraints",
+		Description: "create_clock, create_generated_clock, set_input_delay, set_output_delay, set_false_path, set_multicycle_path, set_max_delay, check_timing, get_clocks.",
+		Adder: func(s *mcp.Server, _ *router.Deps) {
+			RegisterTimingConstraintsToolset(s, env)
+		},
+	})
+
+	reg.Register(&router.Toolset{
 		Name:        "ip",
 		Description: "list_ip_catalog, create_ip, configure_ip, generate_ip, upgrade_ip.",
 		Adder: func(s *mcp.Server, _ *router.Deps) {
@@ -79,6 +86,38 @@ func RegisterAllToolsets(reg *router.Registry, srv *mcp.Server, env *Env) {
 		Description: "hw_open, hw_program, hw_list_devices, hw_close — hardware manager and device programming.",
 		Adder: func(s *mcp.Server, _ *router.Deps) {
 			RegisterHardwareToolset(s, env)
+		},
+	})
+
+	reg.Register(&router.Toolset{
+		Name:        "sim",
+		Description: "launch_sim, run_sim, restart_sim, close_sim, add_wave, log_wave, set_sim_target — simulation lifecycle.",
+		Adder: func(s *mcp.Server, _ *router.Deps) {
+			RegisterSimToolset(s, env)
+		},
+	})
+
+	reg.Register(&router.Toolset{
+		Name:        "nonproject",
+		Description: "read_verilog, read_vhdl, read_xdc_file, synth_design, opt_design, place_design, phys_opt_design, route_design, write_bitstream, link_design — script-mode flow without a project file.",
+		Adder: func(s *mcp.Server, _ *router.Deps) {
+			RegisterNonProjectToolset(s, env)
+		},
+	})
+
+	reg.Register(&router.Toolset{
+		Name:        "design",
+		Description: "get_cells, get_nets, get_ports, get_property, set_property, report_io, report_exceptions, write_verilog, write_vhdl, get_runs, create_pblock — design object queries and netlist export.",
+		Adder: func(s *mcp.Server, _ *router.Deps) {
+			RegisterDesignToolset(s, env)
+		},
+	})
+
+	reg.Register(&router.Toolset{
+		Name:        "debug",
+		Description: "create_debug_core, set_debug_core_property, connect_debug_port, implement_debug_core, hw_ila_run, hw_ila_wait, hw_vio_get, hw_vio_set, write_debug_probes — ILA/VIO insertion and hardware capture.",
+		Adder: func(s *mcp.Server, _ *router.Deps) {
+			RegisterDebugToolset(s, env)
 		},
 	})
 }
