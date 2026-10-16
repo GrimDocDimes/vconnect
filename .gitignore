@@ -7,6 +7,10 @@ vconnect.exe
 *.log
 runs/
 
+# Nix build outputs
+result
+result-*
+
 # IDE / OS
 .vscode/
 .idea/

@@ -1,15 +1,10 @@
 {
   "mcpServers": {
     "vconnect": {
-      "command": "/home/jhush/vconnect/vconnect",
+      "command": "nix-shell",
       "args": [
-        "-vivado", "vivado",
-        "-runs-dir", "/home/jhush/vconnect/runs",
-        "-log", "/home/jhush/vconnect/vconnect.log"
-      ],
-      "env": {
-        "VCONNECT_BOOTSTRAP": "/home/jhush/vconnect/tcl/bootstrap.tcl"
-      }
+        "/home/jhush/vconnect/shell.nix"
+      ]
     }
   }
 }
