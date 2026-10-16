@@ -1,6 +1,6 @@
-# Vconnect
+# vconnect
 
-A Vivado MCP server. Lets an LLM agent drive the complete Vivado Design Suite over the [Model Context Protocol](https://modelcontextprotocol.io). Board and part agnostic — works with any Xilinx/AMD device.
+A Vivado MCP server. Lets an LLM agent drive the complete Vivado Design Suite over the [Model Context Protocol](https://modelcontextprotocol.io). Supports both project-mode and non-project (script) flows. Board and part agnostic.
 
 ---
 
@@ -24,7 +24,7 @@ Long operations (synthesis, implementation, bitstream) run as async **jobs** wit
 
 ---
 
-## Tools
+## Tools — 101 total across 14 toolsets
 
 ### Starter Kit — always available
 
@@ -48,20 +48,25 @@ Enable with `enable_toolset {"name": "<toolset>"}`:
 | `target` | `list_parts`, `list_boards`, `set_part`, `set_board` |
 | `project` | `create_project`, `open_project`, `close_project`, `add_sources`, `set_top`, `update_compile_order`, `list_files`, `export_project_tcl` |
 | `flow` | `launch_synth`, `launch_impl`, `launch_bitstream`, `set_strategy`, `run_status`, `reset_run`, `cancel_run` |
+| `nonproject` | `read_verilog`, `read_vhdl`, `read_xdc_file`, `synth_design`, `opt_design`, `place_design`, `phys_opt_design`, `route_design`, `write_bitstream`, `link_design` |
 | `reports` | `timing_summary`, `utilization`, `power_report`, `drc_report`, `methodology_report`, `cdc_report`, `clock_interaction`, `critical_paths` |
 | `constraints` | `read_xdc`, `append_xdc`, `replace_xdc_constraint`, `reload_xdc` |
+| `timing_constraints` | `create_clock`, `create_generated_clock`, `set_input_delay`, `set_output_delay`, `set_false_path`, `set_multicycle_path`, `set_max_delay`, `check_timing`, `get_clocks` |
+| `design` | `get_cells`, `get_nets`, `get_ports`, `get_property`, `set_property`, `report_io`, `report_exceptions`, `write_verilog`, `write_vhdl`, `get_runs`, `create_pblock` |
 | `ip` | `list_ip_catalog`, `create_ip`, `configure_ip`, `generate_ip`, `upgrade_ip` |
 | `bd` | `create_bd`, `add_bd_cell`, `connect_bd_net`, `validate_bd`, `make_bd_wrapper` |
 | `checkpoints` | `write_checkpoint`, `read_checkpoint` |
+| `sim` | `launch_sim`, `run_sim`, `restart_sim`, `close_sim`, `add_wave`, `log_wave`, `set_sim_target` |
+| `debug` | `create_debug_core`, `set_debug_core_property`, `connect_debug_port`, `implement_debug_core`, `hw_ila_run`, `hw_ila_wait`, `hw_vio_get`, `hw_vio_set`, `write_debug_probes` |
 | `hardware` | `hw_open`, `hw_program`, `hw_list_devices`, `hw_close` |
 
 ---
 
 ## Requirements
 
-- **Vivado** 2020.1 or later (any edition, including WebPACK)
-- **Go** 1.25 or later (only needed to build from source)
-- OS: Linux, Windows, or NixOS
+- **Vivado** 2019.1 or later (any edition, including WebPACK)
+- **Go** 1.22 or later (only needed to build from source)
+- OS: Linux, NixOS, or Windows
 
 ---
 
@@ -69,19 +74,19 @@ Enable with `enable_toolset {"name": "<toolset>"}`:
 
 ### Pre-built binary
 
-Download the latest binary from the [Releases](https://github.com/jhush/vconnect/releases) page.
+Download the latest binary from the [Releases](https://github.com/GrimDocDimes/vconnect/releases) page and place it anywhere on your `PATH`.
 
 ### Build from source
 
 ```bash
-git clone https://github.com/jhush/vconnect
+git clone https://github.com/GrimDocDimes/vconnect
 cd vconnect
 make build
 ```
 
-The binary is placed at `./vconnect` (or `vconnect.exe` on Windows).
+The binary is placed at `./vconnect`.
 
-For a fully static binary (no libc dependency):
+For a fully static binary with no libc dependency:
 
 ```bash
 make build-static   # produces vconnect-linux-amd64
@@ -97,48 +102,38 @@ Ensure `vivado` is on your `PATH`, or set `VIVADO_BIN`:
 
 ```bash
 export VIVADO_BIN=/tools/Xilinx/Vivado/2023.2/bin/vivado
-```
-
-Run the server:
-
-```bash
-./vconnect -vivado "$VIVADO_BIN" -runs-dir ./runs
+./vconnect -vivado "$VIVADO_BIN"
 ```
 
 ### NixOS
 
-Install Go via `nix-shell` or add it to your system packages:
+Vivado requires a FHS-compatible environment on NixOS. A ready-made `shell.nix` is included that sets up the correct library environment and launches vconnect automatically.
 
-```nix
-# shell.nix
-{ pkgs ? import <nixpkgs> {} }:
-pkgs.mkShell {
-  buildInputs = [ pkgs.go ];
-}
-```
+**One-time setup:**
 
-Then build and run as on Linux. Vivado itself is not packaged in nixpkgs — install it from the Xilinx installer and point `VIVADO_BIN` at the binary.
+1. Build the binary:
+   ```bash
+   cd /path/to/vconnect && make build
+   ```
 
-```bash
-nix-shell --run "make build"
-VIVADO_BIN=/opt/Xilinx/Vivado/2023.2/bin/vivado ./vconnect
-```
+2. Edit `shell.nix` to point to your Vivado installation (the default path is `/run/media/jhush/OLDTING/Xilinx/Vivado/2019.2`).
+
+3. Run directly:
+   ```bash
+   nix-shell /path/to/vconnect/shell.nix
+   ```
+   This drops into the FHS environment and starts vconnect.
+
+For the MCP client, set the command to `nix-shell /path/to/vconnect/shell.nix` — it starts vconnect automatically.
 
 ### Windows
 
-> Vivado must be installed and its `bin` directory on `PATH`, or pass `-vivado` explicitly.
-
-Build in PowerShell or Git Bash (Go must be installed):
+Vivado must be installed and its `bin` directory on `PATH`, or pass `-vivado` explicitly.
 
 ```powershell
-git clone https://github.com/jhush/vconnect
+git clone https://github.com/GrimDocDimes/vconnect
 cd vconnect
 go build -o vconnect.exe ./cmd/vconnect/
-```
-
-Run:
-
-```powershell
 .\vconnect.exe -vivado "C:\Xilinx\Vivado\2023.2\bin\vivado.bat"
 ```
 
@@ -146,30 +141,47 @@ Run:
 
 ## MCP Client Setup
 
-### Claude Code
+### Claude Code / any MCP client
 
-Add the following to `~/.claude/mcp.json` (create it if it doesn't exist):
+Add to your MCP client config (e.g. `~/.claude/mcp.json`):
 
+**Linux:**
 ```json
 {
   "mcpServers": {
     "vconnect": {
       "command": "/path/to/vconnect",
-      "args": [
-        "-vivado", "vivado",
-        "-runs-dir", "/path/to/runs"
-      ],
-      "env": {
-        "VCONNECT_BOOTSTRAP": "/path/to/vconnect/tcl/bootstrap.tcl"
-      }
+      "args": ["-vivado", "vivado", "-runs-dir", "/path/to/runs"]
     }
   }
 }
 ```
 
-On Windows, use the full path to `vconnect.exe` and forward slashes or escaped backslashes.
+**NixOS (uses the included `shell.nix`):**
+```json
+{
+  "mcpServers": {
+    "vconnect": {
+      "command": "nix-shell",
+      "args": ["/path/to/vconnect/shell.nix"]
+    }
+  }
+}
+```
 
 A ready-to-edit `mcp.json` is included in the repository root.
+
+### Testing without a paid API (MCP Inspector)
+
+```bash
+# Linux/NixOS
+npx @modelcontextprotocol/inspector ./vconnect -vivado vivado
+
+# NixOS via shell.nix
+npx @modelcontextprotocol/inspector nix-shell /path/to/vconnect/shell.nix
+```
+
+Opens `http://localhost:5173` — a web UI to call tools and inspect responses directly, no LLM API needed.
 
 ---
 
@@ -179,17 +191,36 @@ A ready-to-edit `mcp.json` is included in the repository root.
 session_start {}
 enable_toolset {"name": "target"}
 list_boards {"filter": "nexys"}
+
 enable_toolset {"name": "project"}
-create_project {
-  "name": "myproj",
-  "dir": "/tmp/myproj",
-  "board": "digilentinc.com:nexys4_ddr:part0:1.1"
-}
+create_project {"name": "myproj", "dir": "/tmp/myproj", "board": "digilentinc.com:nexys4_ddr:part0:1.1"}
+
+enable_toolset {"name": "timing_constraints"}
+create_clock {"name": "sys_clk", "period": 10.0, "port": "clk"}
+
 enable_toolset {"name": "flow"}
-launch_synth {}         → {"job_id": "1728999600-ab3c"}
-run_status {"job_id": "1728999600-ab3c"}
+launch_synth {}          → {"job_id": "..."}
+run_status {"job_id": "..."}
+
 enable_toolset {"name": "reports"}
 timing_summary {}
+
+enable_toolset {"name": "hardware"}
+hw_open {}
+hw_program {"bitstream": "/tmp/myproj/myproj.runs/impl_1/top.bit"}
+```
+
+**Non-project (script) mode:**
+```
+session_start {}
+enable_toolset {"name": "nonproject"}
+read_verilog {"files": ["/src/top.v", "/src/fifo.v"]}
+read_xdc_file {"path": "/src/constraints.xdc"}
+synth_design {"top": "top", "part": "xc7a35tcpg236-1"}
+opt_design {}
+place_design {}
+route_design {}
+write_bitstream {"file": "/out/top.bit", "force": true}
 ```
 
 ---
@@ -199,12 +230,15 @@ timing_summary {}
 | Flag | Default | Description |
 |---|---|---|
 | `-vivado` | `$VIVADO_BIN` or `vivado` | Path to the Vivado executable |
-| `-runs-dir` | `./runs` | Directory for job artifacts |
+| `-runs-dir` | `./runs` | Directory for async job artifacts |
 | `-log` | `./vconnect.log` | JSONL call log path |
 | `-tmp-dir` | `$TMPDIR/vconnect` | Temp directory for per-call result files |
 | `-version` | — | Print version and exit |
 
-`VCONNECT_BOOTSTRAP` environment variable overrides the path to `tcl/bootstrap.tcl`.
+`VCONNECT_BOOTSTRAP` — override path to `tcl/bootstrap.tcl` (useful when binary and Tcl file are in separate locations).
 
 ---
 
+## License
+
+MIT
